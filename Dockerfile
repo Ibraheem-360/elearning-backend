@@ -1,14 +1,23 @@
-# Use OpenJDK 17 as the base image
-FROM openjdk:17-jdk-slim
-
-# Set the working directory inside the container
+# Use an official Maven image to build the application
+FROM maven:3.8.6-openjdk-17 AS build
 WORKDIR /app
 
-# Copy the JAR file from the target directory to the container
-COPY target/elearning-0.0.1-SNAPSHOT.jar /app/app.jar
+# Copy the project files into the container
+COPY pom.xml .
+COPY src ./src
 
-# Expose port 9000 for the backend service
+# Build the Spring Boot application
+RUN mvn clean package -DskipTests
+
+# Use an official OpenJDK image to run the application
+FROM openjdk:17-jdk-slim
+WORKDIR /app
+
+# Copy the built jar from the Maven stage
+COPY --from=build /app/target/*.jar app.jar
+
+# Expose the server port
 EXPOSE 9000
 
-# Start the Spring Boot application
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Start the application
+ENTRYPOINT ["java", "-jar", "app.jar"]
